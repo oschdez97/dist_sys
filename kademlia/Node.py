@@ -11,6 +11,12 @@ class Node():
         self.port = port
         self.id = node_id
 
+    def same_home_as(self, node):
+        return self.ip == node.ip and self.port == node.port
+
+    def distance_to(self, node):
+        return self.id ^ node.id
+
     def __iter__(self):
         return iter([self.id, self.ip, self.port])
 
@@ -20,8 +26,6 @@ class Node():
     def __str__(self):
         return '%s:%s' %  (self.ip, str(self.port))
 
-    def distance_to(self, node):
-        return self.id ^ node.id
 
 class NodeHeap():
     """
