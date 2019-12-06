@@ -8,11 +8,6 @@ from collections import OrderedDict
 from abc import abstractmethod, ABC
 
 class IStorage(ABC):
-    """
-    Local storage for this node.
-    IStorage implementations of get must return the same type as put in by set
-    """
-
     @abstractmethod
     def __setitem__(self, key, value):
         """
@@ -120,13 +115,12 @@ class AwsomeStorage(IStorage):
             s = set()
             s.add(digest(value))
             self.data_tag[key] = (time.monotonic(), pickle.dumps(s))
-        self.set_file(digest(value), value)
+        self.set_file(digest(value), value, key)
         self.cull()
 
-    def set_file(self, key, value):
+    def set_file(self, key, value, tag):
         self.data_file[key] = (time.monotonic(), pickle.dumps(value))
         self.cull()
-        # cull para los files
 
     def cull(self):
         for _, _ in self.iter_older_than(self.max_age):
@@ -162,9 +156,12 @@ class AwsomeStorage(IStorage):
 
     def delete_tag(self, key, value):
         self.cull()
-        files = pickle.loads(self.data_tag[key][1])
-        files.remove(digest(value))
-        self.data_tag[key] = (time.monotonic(), pickle.dumps(files))
+        if key in self.data_tag:
+            files = pickle.loads(self.data_tag[key][1])
+            d = digest(value)
+            if d in files:
+                files.remove(d)
+            self.data_tag[key] = (time.monotonic(), pickle.dumps(files))
 
     def __repr__(self):
         self.cull()

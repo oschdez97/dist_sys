@@ -51,13 +51,6 @@ class KBucket:
         return node.id not in self.nodes
 
     def add_node(self, node):
-        """
-        Add a C{Node} to the C{KBucket}.  Return True if successful,
-        False if the bucket is full.
-
-        If the bucket is full, keep track of node in a replacement list, ???
-        per section 4.1 of the paper.
-        """
         if node.id in self.nodes:
             del self.nodes[node.id]
             self.nodes[node.id] = node
@@ -98,9 +91,6 @@ class TableTraverser:
         return self
 
     def __next__(self):
-        """
-        Pop an item from the left subtree, then right, then left, etc.
-        """
         if self.current_nodes:
             return self.current_nodes.pop()
 
@@ -119,11 +109,6 @@ class TableTraverser:
 
 class RoutingTable:
     def __init__(self, protocol, ksize, node):
-        """
-        @param node: The node that represents this server.  It won't
-        be added to the routing table, but will be needed later to
-        determine which buckets to split or not.
-        """
         self.node = node
         self.protocol = protocol
         self.ksize = ksize
@@ -138,10 +123,6 @@ class RoutingTable:
         self.buckets.insert(index + 1, two)
 
     def lonely_buckets(self):
-        """
-        Get all of the buckets that haven't been updated in over
-        an hour.
-        """
         hrago = time.monotonic() - 3600
         return [b for b in self.buckets if b.last_updated < hrago]
 
@@ -157,12 +138,9 @@ class RoutingTable:
         index = self.get_bucket_for(node)
         bucket = self.buckets[index]
 
-        # this will succeed unless the bucket is full
         if bucket.add_node(node):
             return
 
-        # Per section 4.2 of paper, split if the bucket has the node
-        # in its range or if the depth is not congruent to 0 mod 5
         if bucket.has_in_range(self.node) or bucket.depth() % 5 != 0:
             self.split_bucket(index)
             self.add_contact(node)
@@ -170,13 +148,9 @@ class RoutingTable:
             asyncio.ensure_future(self.protocol.call_ping(bucket.head()))
 
     def get_bucket_for(self, node):
-        """
-        Get the index of the bucket that the given node would fall into.
-        """
         for index, bucket in enumerate(self.buckets):
             if node.long_id < bucket.range[1]:
                 return index
-        # we should never be here, but make linter happy
         return None
 
     def find_neighbors(self, node, k=None, exclude=None):

@@ -21,8 +21,14 @@ async def operation(response, server):
         return await list(response[1], server, prt=True)
 
 async def add(file_list, tag_list, server):
+    lfiles = []
+    for f in file_list:
+        with open(f, 'rb') as lf:
+            tmp = lf.read()
+        lfiles.append(tmp)
+
     for t in tag_list:
-        for f in file_list:
+        for f in lfiles:
             await server.set(t, f)
 
 async def add_tags(tag_query, tag_list, server):
@@ -37,25 +43,28 @@ async def add_tags(tag_query, tag_list, server):
                 await server.set(t, f)
 
 async def list(tag_query, server, prt=False):
-    """
-    :param tag_query:
-    :param server:
-    :param prt:
-    :return: List FileIds
-    """
-    if len(tag_query) == 1:
-        file_ids = pickle.loads(await server.get(tag_query[0]))
-        files = []
-        for f in file_ids:
-            files.append(pickle.loads(await server.get(f, False)))
+    files = []
+    tokens = infix_postfix(tag_query)
+    if len(tokens) == 1:
+        try:
+            file_ids = pickle.loads(await server.get(tokens[0]))
+            for f in file_ids:
+                files.append(pickle.loads(await server.get(f, False)))
 
-        if prt:
-            print("Get result:", end=" ")
-            print(files)
-        return files
+            for i in files:
+                w = open('downloads/' + str(digest(i)), "wb")
+                w.write(i)
+                w.close()
+
+            if prt:
+                print("Get result:", end=" ")
+                print(files)
+            return files
+
+        except:
+            return files
 
     else:
-        tokens = infix_postfix(tag_query)
         stack = []
         for item in tokens:
             if item in ops:
@@ -67,11 +76,21 @@ async def list(tag_query, server, prt=False):
                 else:
                     op1 = stack.pop()
                     op2 = stack.pop()
-                    # hacer try catch porque cuando se hace una query que no cumple nadie
-                    # da None y a eso no se le puede hacer pickle... mantener la consistencia
-                    # de la funcion
-                    f1 = pickle.loads(await server.get(op1))
-                    f2 = pickle.loads(await server.get(op2))
+
+                    f1 = set()
+                    f2 = set()
+
+                    try:
+                        if op1 in tokens:
+                            f1 = pickle.loads(await server.get(op1))
+                    except:
+                        pass
+                    try:
+                        if op2 in tokens:
+                            f2 = pickle.loads(await server.get(op2))
+                    except:
+                        pass
+
                     if item == 'and':
                         # stack.append(op1 and op2)
                         stack.append(f1.intersection(f2))
@@ -81,11 +100,13 @@ async def list(tag_query, server, prt=False):
             else:
                 stack.append(item)
         result = stack.pop()
+        files = []
+        for f in result:
+            files.append(pickle.loads(await server.get(f, False)))
         if prt:
-            files = [item[1] for item in result]
             print("Get result:", end=" ")
             print(files)
-        return result
+        return files
 
 async def delete(tag_query, server):
     files = await list(tag_query, server)
@@ -112,9 +133,12 @@ if __name__ == '__main__':
     while True:
         try:
             print(' >>', end=' ')
-            loop.run_until_complete(operation(parse(input()), server))
-        except Exception:
-            break
+            inp = input()
+            if not len(inp):
+                continue
+            loop.run_until_complete(operation(parse(inp), server))
+        except Exception as e:
+            print(e)
 
     server.stop()
     loop.close()

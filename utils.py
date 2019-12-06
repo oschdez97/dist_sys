@@ -42,9 +42,15 @@ def bytes_to_bit_string(bites):
     bits = [bin(bite)[2:].rjust(8, '0') for bite in bites]
     return "".join(bits)
 
+
+def split(args):
+    l1 = args.replace('(', '( ')
+    l2 = l1.replace(')', ' )')
+    return l2.split()
+
 def parse(args):
     # syntax <add> <-f> <file-list> <-t> <tag-list>
-    inst = args.split(' ')
+    inst = split(args)
     if inst[0] == 'add':
         if inst.__contains__('-f') and inst.__contains__('-t'):
             try:

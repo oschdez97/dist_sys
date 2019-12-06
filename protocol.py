@@ -19,9 +19,6 @@ class KademliaProtocol(RPCProtocol):
         self.source_node = source_node
 
     def get_refresh_ids(self):
-        """
-        Get ids to search for to keep old buckets up to date.
-        """
         ids = []
         for bucket in self.router.lonely_buckets():
             rid = random.randint(*bucket.range).to_bytes(20, byteorder='big')
@@ -44,7 +41,6 @@ class KademliaProtocol(RPCProtocol):
         self.storage.set(key, value)
         return True
 
-    # added by myself
     def rpc_delete(self, sender, nodeid, key):
         source = Node(nodeid, sender[0], sender[1])
         self.welcome_if_new(source)
@@ -100,7 +96,6 @@ class KademliaProtocol(RPCProtocol):
         result = await self.store(address, self.source_node.id, key, value)
         return self.handle_call_response(result, node_to_ask)
 
-    # added by myself
     async def call_delete(self, node_to_ask, key):
         address = (node_to_ask.ip, node_to_ask.port)
         result = await self.delete(address, self.source_node.id, key)
@@ -112,19 +107,6 @@ class KademliaProtocol(RPCProtocol):
         return self.handle_call_response(result, node_to_ask)
 
     def welcome_if_new(self, node):
-        """
-        Given a new node, send it all the keys/values it should be storing,
-        then add it to the routing table.
-
-        @param node: A new node that just joined (or that we just found out
-        about).
-
-        Process:
-        For each key in storage, get k closest nodes.  If newnode is closer
-        than the furtherst in that list, and the node for this server
-        is closer than the closest in that list, then store the key/value
-        on the new node (per section 2.5 of the paper)
-        """
         if not self.router.is_new_node(node):
             return
 
@@ -142,10 +124,6 @@ class KademliaProtocol(RPCProtocol):
         self.router.add_contact(node)
 
     def handle_call_response(self, result, node):
-        """
-        If we get a response, add the node to the routing table.  If
-        we get no response, make sure it's removed from the routing table.
-        """
         if not result[0]:
             log.warning("no response from %s, removing from router", node)
             self.router.remove_contact(node)

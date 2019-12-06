@@ -3,21 +3,7 @@ import heapq
 
 
 class Node:
-    """
-    Simple object to encapsulate the concept of a Node (minimally an ID, but
-    also possibly an IP and port if this represents a node on the network).
-    This class should generally not be instantiated directly, as it is a low
-    level construct mostly used by the router.
-    """
     def __init__(self, node_id, ip=None, port=None):
-        """
-        Create a Node instance.
-
-        Args:
-            node_id (int): A value between 0 and 2^160
-            ip (string): Optional IP address where this Node lives
-            port (int): Optional port for this Node (set when IP is set)
-        """
         self.id = node_id
         self.ip = ip
         self.port = port
@@ -27,15 +13,9 @@ class Node:
         return self.ip == node.ip and self.port == node.port
 
     def distance_to(self, node):
-        """
-        Get the distance between this node and another.
-        """
         return self.long_id ^ node.long_id
 
     def __iter__(self):
-        """
-        Enables use of Node as a tuple - i.e., tuple(node) works.
-        """
         return iter([self.id, self.ip, self.port])
 
     def __repr__(self):
@@ -46,29 +26,13 @@ class Node:
 
 
 class NodeHeap:
-    """
-    A heap of nodes ordered by distance to a given node.
-    """
     def __init__(self, node, maxsize):
-        """
-        Constructor.
-
-        @param node: The node to measure all distances from.
-        @param maxsize: The maximum size that this heap can grow to.
-        """
         self.node = node
         self.heap = []
         self.contacted = set()
         self.maxsize = maxsize
 
     def remove(self, peers):
-        """
-        Remove a list of peer ids from this heap.  Note that while this
-        heap retains a constant visible size (based on the iterator), it's
-        actual size may be quite a bit larger than what's exposed.  Therefore,
-        removal of nodes may not change the visible size as previously added
-        nodes suddenly become visible.
-        """
         peers = set(peers)
         if not peers:
             return
@@ -97,11 +61,6 @@ class NodeHeap:
         return heapq.heappop(self.heap)[1] if self else None
 
     def push(self, nodes):
-        """
-        Push nodes onto heap.
-
-        @param nodes: This can be a single item or a C{list}.
-        """
         if not isinstance(nodes, list):
             nodes = [nodes]
 
