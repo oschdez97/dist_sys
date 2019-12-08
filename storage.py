@@ -95,7 +95,7 @@ class ForgetfulStorage(IStorage):
         ivalues = map(operator.itemgetter(1), self.data.values())
         return zip(ikeys, ivalues)
 
-class AwsomeStorage(IStorage):
+class AwesomeStorage(IStorage):
 
     def __init__(self, ttl=604800):
         self.data_tag = OrderedDict()
@@ -106,20 +106,40 @@ class AwsomeStorage(IStorage):
         return IStorage.__setitem__(key,value)
 
     # { tagid, (time, set(  fileid ) ) }
-    def set(self, key, value):
-        if key in self.data_tag:
-            s = pickle.loads(self.data_tag[key][1])
-            s.add(digest(value))
-            self.data_tag[key] = (time.monotonic(), pickle.dumps(s))
+    def set(self, dkey, key, name, value, hash = True):
+        if dkey in self.data_tag:
+            s = pickle.loads(self.data_tag[dkey][1])
+            if hash:
+                s.add(digest(value))
+            else:
+                s.add(value)
+            self.data_tag[dkey] = (time.monotonic(), pickle.dumps(s))
         else:
             s = set()
-            s.add(digest(value))
-            self.data_tag[key] = (time.monotonic(), pickle.dumps(s))
-        self.set_file(digest(value), value, key)
+            if hash:
+                s.add(digest(value))
+            else:
+                s.add(value)
+            self.data_tag[dkey] = (time.monotonic(), pickle.dumps(s))
+        dvalue = value
+        if hash:
+            dvalue = digest(value)
+        self.set_file(dvalue, value, key, name)
         self.cull()
 
-    def set_file(self, key, value, tag):
+    def set_file(self, key, value, tag, name):
+        """
         self.data_file[key] = (time.monotonic(), pickle.dumps(value))
+        """
+        if key in self.data_file:
+            f,t,_ = pickle.loads(self.data_file[key][1])
+            tags = pickle.loads(t)
+            tags.add(tag)
+            self.data_file[key] = (time.monotonic(), pickle.dumps((f, pickle.dumps(tags),_)))
+        else:
+            tags = set()
+            tags.add(tag)
+            self.data_file[key] = (time.monotonic(), pickle.dumps((pickle.dumps(value), pickle.dumps(tags), name)))
         self.cull()
 
     def cull(self):
@@ -128,7 +148,11 @@ class AwsomeStorage(IStorage):
 
     def get(self, key, default = None):
         self.cull()
+        # print('--------------get-------------')
+        # print(key)
+        # print(self.data_file)
         if key in self.data_tag:
+            # print('in here')
             return self.data_tag[key][1]
         if key in self.data_file:
             return self.data_file[key][1]
@@ -154,14 +178,30 @@ class AwsomeStorage(IStorage):
         self.cull()
         del self.data_file[key]
 
-    def delete_tag(self, key, value):
+    def delete_tag(self, dkey ,key, value):
         self.cull()
-        if key in self.data_tag:
-            files = pickle.loads(self.data_tag[key][1])
-            d = digest(value)
-            if d in files:
-                files.remove(d)
-            self.data_tag[key] = (time.monotonic(), pickle.dumps(files))
+        # print('----------delete-tags----------')
+        # print(dkey)
+        # print(key)
+        # print(value)
+        if dkey in self.data_tag:
+            files = pickle.loads(self.data_tag[dkey][1])
+            # d = digest(value)
+            if value in files:
+                files.remove(value)
+            self.data_tag[dkey] = (time.monotonic(), pickle.dumps(files))
+        if value in self.data_file:
+            f, t, _ = pickle.loads(self.data_file[value][1])
+            tags = pickle.loads(t)
+            # print('tagssssssssssssssssss')
+            # print(tags)
+            # input()
+            if key in tags:
+                # print('here---------------')
+                tags.remove(key)
+                # print(tags)
+                self.data_file[value] = (time.monotonic(), pickle.dumps((f, pickle.dumps(tags), _)))
+
 
     def __repr__(self):
         self.cull()

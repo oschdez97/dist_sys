@@ -8,7 +8,7 @@ from utils import digest
 from crawling import NodeSpiderCrawl
 from protocol import KademliaProtocol
 from crawling import ValueSpiderCrawl
-from storage import ForgetfulStorage, AwsomeStorage
+from storage import ForgetfulStorage, AwesomeStorage
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class Server:
         result = await self.protocol.ping(addr, self.node.id)
         return Node(result[1], addr[0], addr[1]) if result[0] else None
 
-    async def get(self, key, hash=True):
+    async def get(self, key, hash=False):
         log.info("Looking up key %s", key)
         dkey = key
         if hash:
@@ -103,8 +103,10 @@ class Server:
                                   self.ksize, self.alpha)
         return await spider.find()
 
-    async def delete(self, key):
-        dkey = digest(key)
+    async def delete(self, key, hash = True):
+        dkey = key
+        if hash:
+            dkey = digest(key)
         """
         if self.storage.get(dkey) is not None:
             # delete the key from here
@@ -136,20 +138,20 @@ class Server:
         nodes = await spider.find()
         log.info("setting '%s' on %s", dkey.hex(), list(map(str, nodes)))
 
-        results = [self.protocol.call_delete_tag(n, dkey, value) for n in nodes]
+        results = [self.protocol.call_delete_tag(n, dkey, key, value) for n in nodes]
         # return true only if at least one store call succeeded
         return any(await asyncio.gather(*results))
 
-    async def set(self, key, value):
+    async def set(self, key, name, value, hash = True):
         if not check_dht_value_type(value):
             raise TypeError(
                 "Value must be of type int, float, bool, str, or bytes"
             )
         log.info("setting '%s' = '%s' on network", key, value)
         dkey = digest(key)
-        return await self.set_digest(dkey, value)
+        return await self.set_digest(dkey, key, name , value, hash)
 
-    async def set_digest(self, dkey, value):
+    async def set_digest(self, dkey, key, name, value, hash = True):
         node = Node(dkey)
 
         nearest = self.protocol.router.find_neighbors(node)
@@ -166,8 +168,8 @@ class Server:
         # if this node is close too, then store here as well
         biggest = max([n.distance_to(node) for n in nodes])
         if self.node.distance_to(node) < biggest:
-            self.storage.set(dkey, value)
-        results = [self.protocol.call_store(n, dkey, value) for n in nodes]
+            self.storage.set(dkey, key, name , value, hash)
+        results = [self.protocol.call_store(n, dkey, key, name, value, hash) for n in nodes]
         # return true only if at least one store call succeeded
         return any(await asyncio.gather(*results))
 

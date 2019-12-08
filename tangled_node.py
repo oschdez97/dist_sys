@@ -10,7 +10,7 @@ from network import Server
 loop = asyncio.get_event_loop()
 loop.set_debug(True)
 
-server = Server(storage=storage.AwsomeStorage())
+server = Server(storage=storage.AwesomeStorage())
 loop.run_until_complete(server.listen(int(sys.argv[2]), sys.argv[1]))
 bootstrap_node = (sys.argv[3], int(sys.argv[4]))
 loop.run_until_complete(server.bootstrap([bootstrap_node]))

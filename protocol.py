@@ -33,12 +33,12 @@ class KademliaProtocol(RPCProtocol):
         self.welcome_if_new(source)
         return self.source_node.id
 
-    def rpc_store(self, sender, nodeid, key, value):
+    def rpc_store(self, sender, nodeid, dkey, key, name, value, hash = True):
         source = Node(nodeid, sender[0], sender[1])
         self.welcome_if_new(source)
         log.debug("got a store request from %s, storing '%s'='%s'",
-                  sender, key.hex(), value)
-        self.storage.set(key, value)
+                  sender, dkey.hex(), value)
+        self.storage.set(dkey, key, name, value, hash)
         return True
 
     def rpc_delete(self, sender, nodeid, key):
@@ -49,12 +49,12 @@ class KademliaProtocol(RPCProtocol):
         self.storage.delete(key)
         return True
 
-    def rpc_delete_tag(self, sender, nodeid, key, value):
+    def rpc_delete_tag(self, sender, nodeid, dkey, key, value):
         source = Node(nodeid, sender[0], sender[1])
         self.welcome_if_new(source)
         log.debug("got a delete request from %s, deleting '%s'",
-                  sender, key.hex())
-        self.storage.delete_tag(key, value)
+                  sender, dkey.hex())
+        self.storage.delete_tag(dkey, key, value)
         return True
 
     def rpc_find_node(self, sender, nodeid, key):
@@ -91,9 +91,9 @@ class KademliaProtocol(RPCProtocol):
         result = await self.ping(address, self.source_node.id)
         return self.handle_call_response(result, node_to_ask)
 
-    async def call_store(self, node_to_ask, key, value):
+    async def call_store(self, node_to_ask, dkey, key, name=None, value=None, hash=True):
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await self.store(address, self.source_node.id, key, value)
+        result = await self.store(address, self.source_node.id,dkey, key, name, value, hash)
         return self.handle_call_response(result, node_to_ask)
 
     async def call_delete(self, node_to_ask, key):
@@ -101,9 +101,9 @@ class KademliaProtocol(RPCProtocol):
         result = await self.delete(address, self.source_node.id, key)
         return self.handle_call_response(result, node_to_ask)
 
-    async def call_delete_tag(self, node_to_ask, key, value):
+    async def call_delete_tag(self, node_to_ask, dkey ,key, value):
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await self.delete_tag(address, self.source_node.id, key, value)
+        result = await self.delete_tag(address, self.source_node.id, dkey ,key, value)
         return self.handle_call_response(result, node_to_ask)
 
     def welcome_if_new(self, node):
@@ -124,11 +124,13 @@ class KademliaProtocol(RPCProtocol):
         self.router.add_contact(node)
 
     def handle_call_response(self, result, node):
+        #print("result >>>>")
+        #print(result)
         if not result[0]:
-            log.warning("no response from %s, removing from router", node)
+            #log.warning("no response from %s, removing from router", node)
             self.router.remove_contact(node)
             return result
 
-        log.info("got successful response from %s", node)
+        #log.info("got successful response from %s", node)
         self.welcome_if_new(node)
         return result

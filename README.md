@@ -20,7 +20,7 @@ Elimina todos los ficheros que cumplan con la consulta tag-query.
 
 • list -q tag-query
 
-Descarga todos los ficheros que cumplan con
+Lista el nombre y las etiquetas de todos los ficheros que cumplan con
 la consulta tag-query.
 
 • add-tags -q tag-query -t tag-list
@@ -32,6 +32,11 @@ cumpan con la consulta tag-query.
 
 Elimina las etiquetas contenidas en tag-list de todos los ficheros que
 cumplan con la consulta tag-query.
+
+• get -q tag-query
+
+Descarga todos los ficheros que cumplan con
+la consulta tag-query. Los ficheros seran almacenados en la carpeta 'downloads' del Proyecto.
 
 ## Inicializar la red
 

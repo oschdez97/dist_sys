@@ -88,6 +88,8 @@ def parse(args):
             except:
                 raise Exception('syntax error: <list> <-q> <tag-query>')
             return inst[0] , tags
+        else:
+            raise Exception('syntax error: <list> <-q> <tag-query>')
     # syntax <add-tags> <-q> <tag-query> <-t> <tag-list>
     elif inst[0] == 'add-tags':
         if inst.__contains__('-q') and inst.__contains__('-t'):
@@ -116,6 +118,18 @@ def parse(args):
             return inst[0], query, tags
         else:
             raise Exception('syntax error: <delete-tags> <-q> <tag-query> <-t> <tag-list>')
+    elif inst[0] == 'get':
+        if inst.__contains__('-q'):
+            try:
+                idx = inst.index('-q')
+                tags = inst[(idx + 1):]
+                if not len(tags):
+                    raise Exception("syntax error: tags can't be empty")
+            except:
+                raise Exception('syntax error: <get> <-q> <tag-query>')
+            return inst[0], tags
+        else:
+            raise Exception('syntax error: <get> <-q> <tag-query>')
     else:
         raise Exception('syntax error: unknown command %s', inst[0])
 

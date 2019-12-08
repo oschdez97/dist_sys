@@ -6,17 +6,18 @@ import storage
 from network import Server
 
 def run(ip, port):
+    """
     handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     log = logging.getLogger('kademlia')
     log.addHandler(handler)
     log.setLevel(logging.DEBUG)
-
+    """
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
 
-    server = Server(storage=storage.AwsomeStorage())
+    server = Server(storage=storage.AwesomeStorage())
     loop.run_until_complete(server.listen(int(port), ip))
 
     try:
